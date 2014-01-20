@@ -29,7 +29,9 @@ instance Show PieceType where
 	show Reg = " "
 	show King = "K"
 
-data Move = M [(Int, Int)]
+data Move = M [Shift]
+
+data Shift = Push Square Square | Jump Square Square | Promotion
 
 class Board b where
 	s ::  b -> Int -> Int -> Piece
@@ -82,7 +84,7 @@ mBoardS (MapB m) a b = case M.lookup (S a b) m of
 	
 
 mBLegalMoves :: MapBoard -> Player -> [Move]
-mBLegalMoves board player = [M [(1, 2), (2, 3)]]
+mBLegalMoves board player = [M [Promotion]]
 
 mbMove :: MapBoard -> Move -> MapBoard
 mbMove board move = board
