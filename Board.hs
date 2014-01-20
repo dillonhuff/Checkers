@@ -4,9 +4,22 @@ import Data.List as L
 import Data.Map as M
 
 data Square = S Int Int
+	deriving (Show)
 
 instance Eq Square where
 	(S a b) == (S c d) = a == c && b == d
+	
+addS :: Square -> Square -> Square
+addS (S a b) (S c d) = S (a+c) (b+d)
+
+subS :: Square -> Square -> Square
+subS (S a b) (S c d) = S (a-c) (b-d)
+
+quotS :: Square -> Int -> Square
+quotS (S a b) c = S (quot a c) (quot b c)
+
+mulS :: Int -> Square -> Square
+mulS c (S a b) = S (c*a) (c*b)
 	
 row :: Square -> Int
 row (S a _) = a
@@ -18,6 +31,7 @@ instance Ord Square where
 	(S a b) <= (S c d) = a < c || (a == c && b <= d)
 
 data Piece = Empty | P Player PieceType
+	deriving (Eq)
 
 isKing :: Piece -> Bool
 isKing (P _ King) = True
@@ -31,6 +45,10 @@ isBlack :: Piece -> Bool
 isBlack (P Black _) = True
 isBlack _ = False
 
+isEmpty :: Piece -> Bool
+isEmpty Empty = True
+isEmpty _ = False
+
 instance Show Piece where
 	show Empty = "  "
 	show (P color pieceType) = show color ++ show pieceType
@@ -43,12 +61,14 @@ instance Show Player where
 	show Black = "B"
 
 data PieceType = Reg | King
+	deriving (Eq)
 
 instance Show PieceType where
 	show Reg = " "
 	show King = "K"
 
 data Move = Push Square Square | Jump Square Square
+	deriving (Show)
 
 class Board b where
 	s ::  b -> Square -> Piece
@@ -122,10 +142,54 @@ legalMovesFromSquare b sq | (length legalJumps) > 0 = legalJumps
 		legalPushes = pushesFrom b sq
 		
 jumpsFrom :: MapBoard -> Square -> [Move]
-jumpsFrom b s = []
+jumpsFrom b sq = L.filter (isValidJump b) possibleJumps
+	where
+		possibleJumps = if isKing (s b sq)
+			then kingJumps sq
+			else regJumps b sq
+			
+isValidJump :: MapBoard -> Move -> Bool
+isValidJump b@(MapB m) (Jump s1 s2) = if (oppositeColors b jumpedSquare s1) 
+	&& (isEmpty (s b s2)) && member s2 m
+	then True
+	else False
+	where
+		jumpedSquare = addS s1 (quotS (subS s1 s2) 2)
+isValidJump _ _ = False
 
+oppositeColors :: (Board b) => b -> Square -> Square -> Bool
+oppositeColors b s1 s2 = if (isEmpty (s b s1)) || (isEmpty (s b s2))
+	then False
+	else if (isRed (s b s1) /= isRed (s b s2))
+		then True
+		else False
+
+kingJumps :: Square -> [Move]
+kingJumps sq = [Jump sq (addS sq (S a b)) | a <- [-2, 2], b <- [-2, 2]]
+
+regJumps :: (Board b) => b -> Square -> [Move]
+regJumps b sq = if isRed (s b sq)
+	then [Jump sq (addS sq (S a b)) | a <- [2], b <- [-2, 2]]
+	else [Jump sq (addS sq (S a b)) | a <- [-2], b <- [-2, 2]]
+			
 pushesFrom :: MapBoard -> Square -> [Move]
-pushesFrom b s = []
+pushesFrom b sq = L.filter (isValidPush b) possiblePushes
+	where
+		possiblePushes = if isKing (s b sq)
+			then kingPushes sq
+			else regPushes b sq
+
+isValidPush :: MapBoard -> Move -> Bool
+isValidPush b@(MapB m) (Push s1 s2) = isEmpty (s b s2) && member s2 m
+isValidPush _ _ = False
+
+kingPushes :: Square -> [Move]
+kingPushes sq = [Push sq (addS sq (S a b)) | a <- [-1, 1], b <- [-1, 1]]
+
+regPushes :: (Board b) => b -> Square -> [Move]
+regPushes  b sq = if isRed (s b sq)
+	then [Push sq (addS sq (S a b)) | a <- [1], b <- [-1, 1]]
+	else [Push sq (addS sq (S a b)) | a <- [-1], b <- [-1, 1]]
 
 doMove :: (Board b) => b -> Move -> b
 doMove b (Push s1 s2) = push b s1 s2
@@ -149,7 +213,8 @@ destPiece p sq = case reachedOppositeEdge p sq of
 	False -> p
 	
 reachedOppositeEdge :: Piece -> Square -> Bool
-reachedOppositeEdge p sq = if ((isRed p) && (row sq) == 8) || ((isBlack p) && (row sq) == 1)
+reachedOppositeEdge p sq = if ((isRed p) && (row sq) == 8)
+	|| ((isBlack p) && (row sq) == 1)
 	then True
 	else False
 
