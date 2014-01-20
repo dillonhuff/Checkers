@@ -1,15 +1,15 @@
 module Board() where
 
-data Square = S Piece Int Int
+import Data.List as L
+import Data.Map as M
 
-instance Show Square where
-	show (S p _ _) = show p
+data Square = S Int Int
 
 instance Eq Square where
-	(S _ a b) == (S _ c d) = a == c && b == d
+	(S a b) == (S c d) = a == c && b == d
 	
 instance Ord Square where
-	(S _ a b) <= (S _ c d) = a < c || (a == c && b <= d)
+	(S a b) <= (S c d) = a < c || (a == c && b <= d)
 
 data Piece = Empty | P Player PieceType
 
@@ -32,19 +32,54 @@ instance Show PieceType where
 data Move = M [(Int, Int)]
 
 class Board b where
-	s :: (Integral a) => b -> a -> a -> Square
+	s ::  b -> Int -> Int -> Piece
 	legalMoves :: b -> Player -> [Move]
 	move :: b -> Move -> b
 
-data MapBoard = MapB [Square]
+data MapBoard = MapB (Map Square Piece)
+
+instance Show MapBoard where
+	show = mBShow
+	
+mBShow :: MapBoard -> String
+mBShow (MapB squaresToPieces) = showRows (assocs squaresToPieces)
+
+showRows :: [(Square, Piece)] -> String
+showRows [] = ""
+showRows rows = (showRow $ (take 4 rows)) ++ (showRows (drop 4 rows))
+
+showRow :: [(Square, Piece)] -> [Char]
+showRow ((S r c, piece):rest) = case mod r 2 of
+	0 -> rowStr ++ "__\n"
+	1 ->  "__" ++ rowStr ++ "\n"
+	where
+		rowStr = withEmptySpaces ((S r c, piece):rest)
+	
+withEmptySpaces :: [(Square, Piece)] -> [Char]
+withEmptySpaces row = concat $ ((intersperse "__" (L.map show pieces)))
+	where
+		pieces = L.map snd row
 
 instance Board MapBoard where
 	s = mBoardS
 	legalMoves = mBLegalMoves
 	move = mbMove
 	
-mBoardS :: (Integral a) => mapBoard -> a -> a -> Square
-mBoardS board a b = S Empty 1 2
+startingBoard :: MapBoard
+startingBoard = MapB $ fromList $ L.map startingSquare legalPositions
+	where legalPositions = [(x, y) | x <- [1..8], y <- [1..8],
+		(mod x 2 == 0 && mod y 2 == 1) || (mod x 2 == 1 && mod y 2 == 0)]
+	
+startingSquare :: (Int, Int) -> (Square, Piece)
+startingSquare (row, col) | row <= 3 = (S row col, P Red Reg)
+						  | row >= 6 = (S row col, P Black Reg)
+						  | otherwise = (S row col, Empty)
+	
+mBoardS :: MapBoard -> Int -> Int -> Piece
+mBoardS (MapB m) a b = case M.lookup (S a b) m of
+	Just piece -> piece
+	Nothing -> Empty
+	
 
 mBLegalMoves :: mapBoard -> Player -> [Move]
 mBLegalMoves board player = [M [(1, 2), (2, 3)]]
