@@ -81,8 +81,8 @@ mBoardS (MapB m) a b = case M.lookup (S a b) m of
 	Nothing -> Empty
 	
 
-mBLegalMoves :: mapBoard -> Player -> [Move]
+mBLegalMoves :: MapBoard -> Player -> [Move]
 mBLegalMoves board player = [M [(1, 2), (2, 3)]]
 
-mbMove :: mapBoard -> Move -> mapBoard
+mbMove :: MapBoard -> Move -> MapBoard
 mbMove board move = board
