@@ -1,15 +1,22 @@
 module Main(main) where
 
+import AI
 import Board
 
 main :: IO ()
 main = playGame
 
 playGame :: IO ()
-playGame = turn startingBoard Red
+playGame = humanTurn startingBoard Red
 	
-turn :: MapBoard -> Player -> IO ()
-turn b p = do
+humanTurn :: MapBoard -> Player -> IO ()
+humanTurn b p = do
+	case winner b of 
+		Just winningPlayer -> putStrLn (show winningPlayer ++ " wins!\n")
+		Nothing -> humanMove b p
+			
+humanMove :: MapBoard -> Player -> IO ()
+humanMove b p = do
 	let moves = legalMoves b p
 	putStrLn (show b ++ "\n" ++ "Enter the number of your move\n")
 	putStrLn (showMoves 1 moves)
@@ -18,13 +25,24 @@ turn b p = do
 	putStrLn ("You selected " ++ show selectedMove ++ "\n")
 	let boardAfterMove = move b selectedMove
 	if (canJumpAgain boardAfterMove p selectedMove)
-		then turn boardAfterMove p
+		then humanTurn boardAfterMove p
 		else case winner boardAfterMove of
 			Just winningPlayer -> putStrLn (show winningPlayer ++ " wins!\n")
-			Nothing -> turn boardAfterMove nextPlayer
-				where
-					nextPlayer = if (p == Red) then Black else Red
+			Nothing -> humanTurn (computerTurn boardAfterMove (nextPlayer p)) p
+	
+					
+computerTurn :: (Board b) => b -> Player -> b
+computerTurn b p = if (canJumpAgain boardAfterMove p selectedMove)
+	then computerTurn boardAfterMove p
+	else boardAfterMove
+	where
+		selectedMove = selectMove FMAI b p
+		boardAfterMove = move b selectedMove
+	
 					
 showMoves :: Int -> [Move] -> String
 showMoves _ [] = ""
 showMoves moveNum (move:rest) = show moveNum ++ ". " ++ (show move) ++ "\n" ++ showMoves (moveNum+1) rest
+
+nextPlayer :: Player -> Player
+nextPlayer p = if (p == Red) then Black else Red
