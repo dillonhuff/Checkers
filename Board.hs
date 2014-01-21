@@ -1,7 +1,9 @@
 module Board(
 	startingBoard,
-	Board(s, sSet, legalMoves, move),
-	Player(Red, Black)) where
+	Board(s, legalMoves, move, winner),
+	Player(Red, Black),
+	MapBoard,
+	Move) where
 
 import Data.List as L
 import Data.Map as M
@@ -77,6 +79,7 @@ class Board b where
 	s ::  b -> Square -> Piece
 	sSet :: b -> Square -> Piece -> b
 	legalMoves :: b -> Player -> [Move]
+	winner :: b -> Maybe Player
 	move :: b -> Move -> b
 	move = doMove
 
@@ -108,6 +111,7 @@ instance Board MapBoard where
 	s = mBoardS
 	sSet = mBSSet
 	legalMoves = mBLegalMoves
+	winner = mBWinner
 	
 startingBoard :: MapBoard
 startingBoard = MapB $ fromList $ L.map startingSquare legalPositions
@@ -227,3 +231,12 @@ promote b sq = case s b sq of
 	(P Red Reg) -> sSet b sq (P Red King)
 	(P Black Reg) -> sSet b sq (P Black King)
 	_ -> b
+	
+mBWinner :: MapBoard -> Maybe Player
+mBWinner (MapB m) = if ((numPieces Red) == 0)
+	then Just Black
+	else if ((numPieces Black) == 0)
+		then Just Red
+		else Nothing
+	where
+		numPieces p = length $ L.filter (matchesPlayer p) (toList m)

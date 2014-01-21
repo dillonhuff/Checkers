@@ -3,10 +3,23 @@ module Main(main) where
 import Board
 
 main :: IO ()
-main = do
-	let board = startingBoard
-	let moves = legalMoves board Red
+main = playGame
+
+playGame :: IO ()
+playGame = turn startingBoard Red
+	
+turn :: MapBoard -> Player -> IO ()
+turn b p = do
+	let moves = legalMoves b p
+	putStrLn (show b ++ "\n" ++ "Enter the number of your move\n")
 	putStrLn (show moves)
-	putStrLn (show board ++ "\n" ++ "Enter the number of your move\n")
 	moveNum <- getLine
-	putStrLn ("You selected " ++ show (moves !! (read moveNum)) ++ "\n")
+	let selectedMove = (moves !! (read moveNum))
+	putStrLn ("You selected " ++ show selectedMove ++ "\n")
+	let boardAfterMove = move b selectedMove
+	case winner boardAfterMove of
+		Just winningPlayer -> putStrLn (show winningPlayer ++ " wins!\n")
+		Nothing -> turn boardAfterMove nextPlayer
+			where
+				nextPlayer = if (p == Red) then Black else Red
+	
