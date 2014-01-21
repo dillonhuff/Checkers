@@ -74,6 +74,10 @@ instance Show PieceType where
 
 data Move = Push Square Square | Jump Square Square
 	deriving (Show)
+	
+isJump :: Move -> Bool
+isJump (Jump _ _) = True
+isJump _ = False
 
 class Board b where
 	s ::  b -> Square -> Piece
@@ -133,7 +137,12 @@ mBSSet (MapB m) s p = MapB $ M.insert s p $ M.delete s m
 	
 
 mBLegalMoves :: MapBoard -> Player -> [Move]
-mBLegalMoves b p = concat (L.map (legalMovesFromSquare b) (validStartingSquares b p))
+mBLegalMoves b p = if ((length jumps) > 0)
+	then jumps
+	else possibleMoves
+	where
+		possibleMoves = concat (L.map (legalMovesFromSquare b) (validStartingSquares b p))
+		jumps = L.filter isJump possibleMoves
 
 validStartingSquares :: MapBoard -> Player -> [Square]
 validStartingSquares (MapB m) p = L.map fst (L.filter (matchesPlayer p) (toList m))
@@ -162,7 +171,7 @@ isValidJump b@(MapB m) (Jump s1 s2) = if (oppositeColors b jumpedSquare s1)
 	then True
 	else False
 	where
-		jumpedSquare = addS s1 (quotS (subS s1 s2) 2)
+		jumpedSquare = addS s1 (quotS (subS s2 s1) 2)
 isValidJump _ _ = False
 
 oppositeColors :: (Board b) => b -> Square -> Square -> Bool
