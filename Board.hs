@@ -1,11 +1,12 @@
 module Board(
 	startingBoard,
-	Board(s, legalMoves, move, winner, canJumpAgain),
+	Board(s, legalMoves, move, winner, canJumpAgain, kings, regularPieces),
 	Player(Red, Black),
 	Square,
 	MapBoard,
 	Move,
-	isJump) where
+	isJump,
+	otherPlayer) where
 
 import Data.List as L
 import Data.Map as M
@@ -68,6 +69,10 @@ instance Show Piece where
 
 data Player = Red | Black
 	deriving (Eq)
+	
+otherPlayer :: Player -> Player
+otherPlayer Red = Black
+otherPlayer Black = Red
 
 instance Show Player where
 	show Red = "R"
@@ -271,11 +276,11 @@ jumpFromLastLanding (Jump _ landing) (Jump starting _) = landing == starting
 jumpFromLastLanding _ _ = False
 
 mBKings :: MapBoard -> Player -> [Square]
-mBKings (MapB m) p = L.map fst (L.filter squareHasKing (toList m))
+mBKings (MapB m) p = L.map fst (L.filter squareHasKing (L.filter (matchesPlayer p) (toList m)))
 	where
 		squareHasKing squareAndPiece = isKing $ snd squareAndPiece
 
 mBRegularPieces :: MapBoard -> Player -> [Square]
-mBRegularPieces (MapB m) p = L.map fst (L.filter squareHasReg (toList m))
+mBRegularPieces (MapB m) p = L.map fst (L.filter squareHasReg (L.filter (matchesPlayer p) (toList m)))
 	where
 		squareHasReg squareAndPiece = isRegular $ snd squareAndPiece
