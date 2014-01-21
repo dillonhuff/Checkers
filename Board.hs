@@ -1,4 +1,7 @@
-module Board() where
+module Board(
+	startingBoard,
+	Board(s, sSet, legalMoves, move),
+	Player(Red, Black)) where
 
 import Data.List as L
 import Data.Map as M
@@ -126,13 +129,14 @@ mBSSet (MapB m) s p = MapB $ M.insert s p $ M.delete s m
 	
 
 mBLegalMoves :: MapBoard -> Player -> [Move]
-mBLegalMoves board player = [Push (S 1 2) (S 2 3)]
+mBLegalMoves b p = concat (L.map (legalMovesFromSquare b) (validStartingSquares b p))
 
 validStartingSquares :: MapBoard -> Player -> [Square]
 validStartingSquares (MapB m) p = L.map fst (L.filter (matchesPlayer p) (toList m))
 
 matchesPlayer :: Player -> (Square, Piece) -> Bool
 matchesPlayer p (_, P player _) = player == p
+matchesPlayer _ _ = False
 
 legalMovesFromSquare :: MapBoard -> Square -> [Move]
 legalMovesFromSquare b sq | (length legalJumps) > 0 = legalJumps
