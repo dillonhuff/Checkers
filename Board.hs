@@ -2,6 +2,7 @@ module Board(
 	startingBoard,
 	Board(s, legalMoves, move, winner, canJumpAgain),
 	Player(Red, Black),
+	Square,
 	MapBoard,
 	Move,
 	isJump) where
@@ -44,6 +45,10 @@ data Piece = Empty | P Player PieceType
 isKing :: Piece -> Bool
 isKing (P _ King) = True
 isKing _ = False
+
+isRegular :: Piece -> Bool
+isRegular (P _ Reg) = True
+isRegular _ = False
 
 isRed :: Piece -> Bool
 isRed (P Red _) = True
@@ -88,6 +93,8 @@ class Board b where
 	legalMoves :: b -> Player -> [Move]
 	winner :: b -> Maybe Player
 	canJumpAgain :: b -> Player -> Move -> Bool
+	kings :: b -> Player -> [Square]
+	regularPieces :: b -> Player -> [Square]
 	move :: b -> Move -> b
 	move = doMove
 
@@ -121,6 +128,8 @@ instance Board MapBoard where
 	legalMoves = mBLegalMoves
 	winner = mBWinner
 	canJumpAgain = mBCanJumpAgain
+	kings = mBKings
+	regularPieces = mBRegularPieces
 	
 startingBoard :: MapBoard
 startingBoard = MapB $ fromList $ L.map startingSquare legalPositions
@@ -225,8 +234,7 @@ push b s1 s2 = sSet (sSet b s1 Empty) s2 movingPiece
 jump :: (Board b) => b -> Square -> Square -> b
 jump b s1 s2 = sSet (sSet (sSet b s1 Empty) jumped Empty) s2 jumper
 	where
-		jumped = S ((row s1) + (quot ((row s2) - (row s1)) 2))
-				   ((col s2) - (quot ((col s2) - (col s1)) 2))
+		jumped = addS s1 (quotS (subS s2 s1) 2)
 		jumper = destPiece (s b s1) s2
 		
 destPiece :: Piece -> Square -> Piece
@@ -261,3 +269,13 @@ mBCanJumpAgain b p m = length (L.filter (jumpFromLastLanding m) (legalMoves b p)
 jumpFromLastLanding :: Move -> Move -> Bool
 jumpFromLastLanding (Jump _ landing) (Jump starting _) = landing == starting
 jumpFromLastLanding _ _ = False
+
+mBKings :: MapBoard -> Player -> [Square]
+mBKings (MapB m) p = L.map fst (L.filter squareHasKing (toList m))
+	where
+		squareHasKing squareAndPiece = isKing $ snd squareAndPiece
+
+mBRegularPieces :: MapBoard -> Player -> [Square]
+mBRegularPieces (MapB m) p = L.map fst (L.filter squareHasReg (toList m))
+	where
+		squareHasReg squareAndPiece = isRegular $ snd squareAndPiece
