@@ -17,9 +17,11 @@ turn b p = do
 	let selectedMove = (moves !! (read moveNum))
 	putStrLn ("You selected " ++ show selectedMove ++ "\n")
 	let boardAfterMove = move b selectedMove
-	case winner boardAfterMove of
-		Just winningPlayer -> putStrLn (show winningPlayer ++ " wins!\n")
-		Nothing -> turn boardAfterMove nextPlayer
-			where
-				nextPlayer = if (p == Red) then Black else Red
+	if (((length $ filter isJump (legalMoves boardAfterMove p)) > 0) && (isJump selectedMove))
+		then turn boardAfterMove p
+		else case winner boardAfterMove of
+			Just winningPlayer -> putStrLn (show winningPlayer ++ " wins!\n")
+			Nothing -> turn boardAfterMove nextPlayer
+				where
+					nextPlayer = if (p == Red) then Black else Red
 	

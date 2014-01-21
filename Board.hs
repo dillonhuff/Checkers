@@ -3,7 +3,8 @@ module Board(
 	Board(s, legalMoves, move, winner),
 	Player(Red, Black),
 	MapBoard,
-	Move) where
+	Move,
+	isJump) where
 
 import Data.List as L
 import Data.Map as M
