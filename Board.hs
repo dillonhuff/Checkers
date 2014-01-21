@@ -1,6 +1,6 @@
 module Board(
 	startingBoard,
-	Board(s, legalMoves, move, winner),
+	Board(s, legalMoves, move, winner, canJumpAgain),
 	Player(Red, Black),
 	MapBoard,
 	Move,
@@ -10,7 +10,9 @@ import Data.List as L
 import Data.Map as M
 
 data Square = S Int Int
-	deriving (Show)
+
+instance Show Square where
+	show (S a b) = "(" ++ show a ++ ", " ++ show b ++ ")"
 
 instance Eq Square where
 	(S a b) == (S c d) = a == c && b == d
@@ -85,6 +87,7 @@ class Board b where
 	sSet :: b -> Square -> Piece -> b
 	legalMoves :: b -> Player -> [Move]
 	winner :: b -> Maybe Player
+	canJumpAgain :: b -> Player -> Move -> Bool
 	move :: b -> Move -> b
 	move = doMove
 
@@ -94,11 +97,11 @@ instance Show MapBoard where
 	show = mBShow
 	
 mBShow :: MapBoard -> String
-mBShow (MapB squaresToPieces) = showRows (assocs squaresToPieces)
+mBShow (MapB squaresToPieces) = "  1 2 3 4 5 6 7 8\n" ++ showRows 1 (assocs squaresToPieces)
 
-showRows :: [(Square, Piece)] -> String
-showRows [] = ""
-showRows rows = (showRow $ (take 4 rows)) ++ (showRows (drop 4 rows))
+showRows :: Int -> [(Square, Piece)] -> String
+showRows _ [] = ""
+showRows rowNum rows = show rowNum ++ " " ++ (showRow $ (take 4 rows)) ++ (showRows (rowNum+1) (drop 4 rows))
 
 showRow :: [(Square, Piece)] -> [Char]
 showRow ((S r c, piece):rest) = case mod r 2 of
@@ -117,6 +120,7 @@ instance Board MapBoard where
 	sSet = mBSSet
 	legalMoves = mBLegalMoves
 	winner = mBWinner
+	canJumpAgain = mBCanJumpAgain
 	
 startingBoard :: MapBoard
 startingBoard = MapB $ fromList $ L.map startingSquare legalPositions
@@ -250,3 +254,10 @@ mBWinner (MapB m) = if ((numPieces Red) == 0)
 		else Nothing
 	where
 		numPieces p = length $ L.filter (matchesPlayer p) (toList m)
+		
+mBCanJumpAgain :: MapBoard -> Player -> Move -> Bool
+mBCanJumpAgain b p m = length (L.filter (jumpFromLastLanding m) (legalMoves b p)) > 0
+
+jumpFromLastLanding :: Move -> Move -> Bool
+jumpFromLastLanding (Jump _ landing) (Jump starting _) = landing == starting
+jumpFromLastLanding _ _ = False
