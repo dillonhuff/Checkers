@@ -24,7 +24,11 @@ makeGameTree depth evalFunc p b = GTree (evalFunc b p) children
 			else []
 
 possibleNextBoards :: (Board b) => b -> Player -> [b]
-possibleNextBoards b p = map (move b) (legalMoves b p)
+possibleNextBoards b p = concat $ map (moveSequence b p) (legalMoves b p)
+
+moveSequence :: (Board b) => b -> Player -> Move -> [b]
+moveSequence b m = if (canJumpAgain b p m)
+	then 
 
 gTreeToList :: GameTree -> [Float]
 gTreeToList (GTree score []) = [score]
