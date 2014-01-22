@@ -1,12 +1,12 @@
 module Board(
 	startingBoard,
 	Board(s, legalMoves, move, winner, canJumpAgain, kings, regularPieces),
-	Player(Red, Black),
+	Player, red, black, otherPlayer, isRed, isBlack,
+	PieceType, regular, king,
 	Square,
 	MapBoard,
-	Move,
-	isJump,
-	otherPlayer) where
+	Move, isJump
+	) where
 
 import Data.List as L
 import Data.Map as M
@@ -19,6 +19,9 @@ instance Show Square where
 instance Eq Square where
 	(S a b) == (S c d) = a == c && b == d
 	
+square :: Int -> Int -> Square
+square row col = S row col
+	
 addS :: Square -> Square -> Square
 addS (S a b) (S c d) = S (a+c) (b+d)
 
@@ -27,9 +30,6 @@ subS (S a b) (S c d) = S (a-c) (b-d)
 
 quotS :: Square -> Int -> Square
 quotS (S a b) c = S (quot a c) (quot b c)
-
-mulS :: Int -> Square -> Square
-mulS c (S a b) = S (c*a) (c*b)
 	
 row :: Square -> Int
 row (S a _) = a
@@ -43,25 +43,19 @@ instance Ord Square where
 data Piece = Empty | P Player PieceType
 	deriving (Eq)
 
-isKing :: Piece -> Bool
-isKing (P _ King) = True
-isKing _ = False
+red :: Player
+red = Red
 
-isRegular :: Piece -> Bool
-isRegular (P _ Reg) = True
-isRegular _ = False
+black :: Player
+black = black
+	
+player :: Piece -> Maybe Player
+player (P player _) = Just player
+player _ = Nothing
 
-isRed :: Piece -> Bool
-isRed (P Red _) = True
-isRed _ = False
-
-isBlack :: Piece -> Bool
-isBlack (P Black _) = True
-isBlack _ = False
-
-isEmpty :: Piece -> Bool
-isEmpty Empty = True
-isEmpty _ = False
+pieceType :: Piece -> Maybe PieceType
+pieceType (P _ pType) = Just pType
+pieceType _ = Nothing
 
 instance Show Piece where
 	show Empty = "  "
@@ -70,9 +64,16 @@ instance Show Piece where
 data Player = Red | Black
 	deriving (Eq)
 	
+isRed :: Player -> Bool
+isRed Red = True
+isRed _ = False
+
+isBlack :: Player -> Bool
+isBlack Black = True
+isBlack _ = False
+	
 otherPlayer :: Player -> Player
-otherPlayer Red = Black
-otherPlayer Black = Red
+otherPlayer p = if (isBlack p) then Red else Black
 
 instance Show Player where
 	show Red = "R"
@@ -80,6 +81,12 @@ instance Show Player where
 
 data PieceType = Reg | King
 	deriving (Eq)
+	
+regular :: PieceType
+regular = Reg
+
+king :: PieceType
+king = King
 
 instance Show PieceType where
 	show Reg = " "
@@ -180,13 +187,14 @@ legalMovesFromSquare b sq | (length legalJumps) > 0 = legalJumps
 jumpsFrom :: MapBoard -> Square -> [Move]
 jumpsFrom b sq = L.filter (isValidJump b) possibleJumps
 	where
-		possibleJumps = if isKing (s b sq)
-			then kingJumps sq
-			else regJumps b sq
+		possibleJumps = case pieceType (s b sq) of
+			Just King -> kingJumps sq
+			Just Reg -> regJumps b sq
+			Nothing -> []
 			
 isValidJump :: MapBoard -> Move -> Bool
 isValidJump b@(MapB m) (Jump s1 s2) = if (oppositeColors b jumpedSquare s1) 
-	&& (isEmpty (s b s2)) && member s2 m
+	&& (pieceType (s b s2) == Nothing) && member s2 m
 	then True
 	else False
 	where
@@ -194,9 +202,9 @@ isValidJump b@(MapB m) (Jump s1 s2) = if (oppositeColors b jumpedSquare s1)
 isValidJump _ _ = False
 
 oppositeColors :: (Board b) => b -> Square -> Square -> Bool
-oppositeColors b s1 s2 = if (isEmpty (s b s1)) || (isEmpty (s b s2))
+oppositeColors b s1 s2 = if (pieceType (s b s1) == Nothing) || (pieceType (s b s2) == Nothing)
 	then False
-	else if (isRed (s b s1) /= isRed (s b s2))
+	else if (player (s b s1) /= player (s b s2))
 		then True
 		else False
 
@@ -204,28 +212,31 @@ kingJumps :: Square -> [Move]
 kingJumps sq = [Jump sq (addS sq (S a b)) | a <- [-2, 2], b <- [-2, 2]]
 
 regJumps :: (Board b) => b -> Square -> [Move]
-regJumps b sq = if isRed (s b sq)
-	then [Jump sq (addS sq (S a b)) | a <- [2], b <- [-2, 2]]
-	else [Jump sq (addS sq (S a b)) | a <- [-2], b <- [-2, 2]]
+regJumps b sq = case player (s b sq) of
+	Just Red -> [Jump sq (addS sq (S a b)) | a <- [2], b <- [-2, 2]]
+	Just Black -> [Jump sq (addS sq (S a b)) | a <- [-2], b <- [-2, 2]]
+	Nothing -> []
 			
 pushesFrom :: MapBoard -> Square -> [Move]
 pushesFrom b sq = L.filter (isValidPush b) possiblePushes
 	where
-		possiblePushes = if isKing (s b sq)
-			then kingPushes sq
-			else regPushes b sq
+		possiblePushes = case pieceType (s b sq) of
+			Just King -> kingPushes sq
+			Just Reg -> regPushes b sq
+			Nothing -> []
 
 isValidPush :: MapBoard -> Move -> Bool
-isValidPush b@(MapB m) (Push s1 s2) = isEmpty (s b s2) && member s2 m
+isValidPush b@(MapB m) (Push s1 s2) = (pieceType (s b s2) == Nothing) && member s2 m
 isValidPush _ _ = False
 
 kingPushes :: Square -> [Move]
 kingPushes sq = [Push sq (addS sq (S a b)) | a <- [-1, 1], b <- [-1, 1]]
 
 regPushes :: (Board b) => b -> Square -> [Move]
-regPushes  b sq = if isRed (s b sq)
-	then [Push sq (addS sq (S a b)) | a <- [1], b <- [-1, 1]]
-	else [Push sq (addS sq (S a b)) | a <- [-1], b <- [-1, 1]]
+regPushes  b sq = case player (s b sq) of
+	Just Red -> [Push sq (addS sq (S a b)) | a <- [1], b <- [-1, 1]]
+	Just Black -> [Push sq (addS sq (S a b)) | a <- [-1], b <- [-1, 1]]
+	Nothing -> []
 
 doMove :: (Board b) => b -> Move -> b
 doMove b (Push s1 s2) = push b s1 s2
@@ -244,12 +255,12 @@ jump b s1 s2 = sSet (sSet (sSet b s1 Empty) jumped Empty) s2 jumper
 		
 destPiece :: Piece -> Square -> Piece
 destPiece p sq = case reachedOppositeEdge p sq of
-	True -> if (isRed p) then (P Red King) else (P Black King)
+	True -> if (player p == Just Red) then (P Red King) else (P Black King)
 	False -> p
 	
 reachedOppositeEdge :: Piece -> Square -> Bool
-reachedOppositeEdge p sq = if ((isRed p) && (row sq) == 8)
-	|| ((isBlack p) && (row sq) == 1)
+reachedOppositeEdge p sq = if ((player p == Just Red) && (row sq) == 8)
+	|| ((player p == Just Black) && (row sq) == 1)
 	then True
 	else False
 
@@ -278,9 +289,9 @@ jumpFromLastLanding _ _ = False
 mBKings :: MapBoard -> Player -> [Square]
 mBKings (MapB m) p = L.map fst (L.filter squareHasKing (L.filter (matchesPlayer p) (toList m)))
 	where
-		squareHasKing squareAndPiece = isKing $ snd squareAndPiece
+		squareHasKing squareAndPiece = (pieceType $ snd squareAndPiece) == Just King
 
 mBRegularPieces :: MapBoard -> Player -> [Square]
 mBRegularPieces (MapB m) p = L.map fst (L.filter squareHasReg (L.filter (matchesPlayer p) (toList m)))
 	where
-		squareHasReg squareAndPiece = isRegular $ snd squareAndPiece
+		squareHasReg squareAndPiece = (pieceType $ snd squareAndPiece) == Just Reg

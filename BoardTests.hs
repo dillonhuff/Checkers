@@ -14,3 +14,6 @@ prop_switchesPlayer_changesPlayer p = otherPlayer p /= p
 
 prop_switchesPlayer_twiceGoesBackToOriginal p = otherPlayer (otherPlayer p) == p
 
+instance Arbitrary PieceType where
+	arbitrary = elements [Reg, King]
+	

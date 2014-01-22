@@ -7,7 +7,7 @@ main :: IO ()
 main = playGame
 
 playGame :: IO ()
-playGame = humanTurn startingBoard Red
+playGame = humanTurn startingBoard red
 	
 humanTurn :: MapBoard -> Player -> IO ()
 humanTurn b p = do
@@ -28,7 +28,7 @@ humanMove b p = do
 		then humanTurn boardAfterMove p
 		else case winner boardAfterMove of
 			Just winningPlayer -> putStrLn (show winningPlayer ++ " wins!\n")
-			Nothing -> humanTurn (computerTurn boardAfterMove (nextPlayer p)) p
+			Nothing -> humanTurn (computerTurn boardAfterMove (otherPlayer p)) p
 	
 					
 computerTurn :: (Board b) => b -> Player -> b
@@ -43,6 +43,3 @@ computerTurn b p = if (canJumpAgain boardAfterMove p selectedMove)
 showMoves :: Int -> [Move] -> String
 showMoves _ [] = ""
 showMoves moveNum (move:rest) = show moveNum ++ ". " ++ (show move) ++ "\n" ++ showMoves (moveNum+1) rest
-
-nextPlayer :: Player -> Player
-nextPlayer p = if (p == Red) then Black else Red
