@@ -1,6 +1,5 @@
 module Board(
-	startingBoard,
-	Board(legalMoves, move, winner, canJumpAgain, kings, regularPieces),
+	Board(startingBoard, board, legalMoves, move, winner, canJumpAgain, kings, regularPieces),
 	Player, red, black, otherPlayer, isRed, isBlack,
 	Piece, emptyPiece, piece,
 	PieceType, regular, king,
@@ -113,6 +112,7 @@ isJump (Jump _ _) = True
 isJump _ = False
 
 class Board b where
+	board :: [(Square, Piece)] -> b
 	s ::  b -> Square -> Piece
 	sSet :: b -> Square -> Piece -> b
 	legalMoves :: b -> Player -> [Move]
@@ -122,6 +122,8 @@ class Board b where
 	regularPieces :: b -> Player -> [Square]
 	move :: b -> Move -> b
 	move = doMove
+	startingBoard :: b
+	startingBoard = initBoard
 
 data MapBoard = MapB (Map Square Piece)
 
@@ -148,6 +150,7 @@ withEmptySpaces row = concat $ ((intersperse "__" (L.map show pieces)))
 		pieces = L.map snd row
 
 instance Board MapBoard where
+	board = mBBoard
 	s = mBoardS
 	sSet = mBSSet
 	legalMoves = mBLegalMoves
@@ -156,8 +159,11 @@ instance Board MapBoard where
 	kings = mBKings
 	regularPieces = mBRegularPieces
 	
-startingBoard :: MapBoard
-startingBoard = MapB $ fromList $ L.map startingSquare legalPositions
+mBBoard :: [(Square, Piece)] -> MapBoard
+mBBoard squaresAndPieces = MapB $ fromList squaresAndPieces
+	
+initBoard :: Board b => b
+initBoard = board $ L.map startingSquare legalPositions
 	where legalPositions = [(x, y) | x <- [1..8], y <- [1..8],
 		(mod x 2 == 0 && mod y 2 == 1) || (mod x 2 == 1 && mod y 2 == 0)]
 	

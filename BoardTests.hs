@@ -1,6 +1,7 @@
 module BoardTests(main) where
 
 import Test.QuickCheck
+import Test.QuickCheck.Gen
 import Board
 
 main = do
@@ -37,4 +38,8 @@ instance Arbitrary Move where
 		s1 <- arbitrary
 		s2 <- arbitrary
 		elements [push s1 s2, jump s1 s2]
-	
+		
+instance Arbitrary MapBoard where
+	arbitrary = do
+		elements <- listOf (arbitrary :: Gen (Square, Piece))
+		return $ board (take 32 elements)
