@@ -13,4 +13,19 @@ pieceDiff b p = fromIntegral (playerPieces - otherPieces)
 		otherPieces = (length (kings b (otherPlayer p)))
 			+ (length (regularPieces b (otherPlayer p)))
 			
-data GameTree = GT Float [GameTree]
+data GameTree = GTree Float [GameTree]
+	deriving (Show)
+
+makeGameTree :: (Board b) => Int -> (b -> Player -> Float) -> Player -> b -> GameTree
+makeGameTree depth evalFunc p b = GTree (evalFunc b p) children
+	where
+		children = if (depth > 0)
+			then map (makeGameTree (depth-1) evalFunc (otherPlayer p)) (possibleNextBoards b p)
+			else []
+
+possibleNextBoards :: (Board b) => b -> Player -> [b]
+possibleNextBoards b p = map (move b) (legalMoves b p)
+
+gTreeToList :: GameTree -> [Float]
+gTreeToList (GTree score []) = [score]
+gTreeToList (GTree score children) = [score] ++ concat (map gTreeToList children)
