@@ -1,11 +1,12 @@
 module Board(
 	startingBoard,
-	Board(s, legalMoves, move, winner, canJumpAgain, kings, regularPieces),
+	Board(legalMoves, move, winner, canJumpAgain, kings, regularPieces),
 	Player, red, black, otherPlayer, isRed, isBlack,
+	Piece, emptyPiece, piece,
 	PieceType, regular, king,
-	Square,
+	Square, square,
 	MapBoard,
-	Move, isJump
+	Move, push, jump, isJump
 	) where
 
 import Data.List as L
@@ -30,7 +31,7 @@ subS (S a b) (S c d) = S (a-c) (b-d)
 
 quotS :: Square -> Int -> Square
 quotS (S a b) c = S (quot a c) (quot b c)
-	
+
 row :: Square -> Int
 row (S a _) = a
 
@@ -42,12 +43,12 @@ instance Ord Square where
 
 data Piece = Empty | P Player PieceType
 	deriving (Eq)
+	
+emptyPiece :: Piece
+emptyPiece = Empty
 
-red :: Player
-red = Red
-
-black :: Player
-black = black
+piece :: Player -> PieceType -> Piece
+piece player pieceType = P player pieceType
 	
 player :: Piece -> Maybe Player
 player (P player _) = Just player
@@ -63,6 +64,12 @@ instance Show Piece where
 
 data Player = Red | Black
 	deriving (Eq)
+	
+red :: Player
+red = Red
+
+black :: Player
+black = black
 	
 isRed :: Player -> Bool
 isRed Red = True
@@ -94,6 +101,12 @@ instance Show PieceType where
 
 data Move = Push Square Square | Jump Square Square
 	deriving (Show)
+	
+push :: Square -> Square -> Move
+push s1 s2 = Push s1 s2
+
+jump :: Square -> Square -> Move
+jump s1 s2 = Jump s1 s2
 	
 isJump :: Move -> Bool
 isJump (Jump _ _) = True
@@ -239,16 +252,16 @@ regPushes  b sq = case player (s b sq) of
 	Nothing -> []
 
 doMove :: (Board b) => b -> Move -> b
-doMove b (Push s1 s2) = push b s1 s2
-doMove b (Jump s1 s2) = jump b s1 s2
+doMove b (Push s1 s2) = doPush b s1 s2
+doMove b (Jump s1 s2) = doJump b s1 s2
 
-push :: (Board b) => b -> Square -> Square -> b
-push b s1 s2 = sSet (sSet b s1 Empty) s2 movingPiece
+doPush :: (Board b) => b -> Square -> Square -> b
+doPush b s1 s2 = sSet (sSet b s1 Empty) s2 movingPiece
 	where
 		movingPiece = destPiece (s b s1) s2
 
-jump :: (Board b) => b -> Square -> Square -> b
-jump b s1 s2 = sSet (sSet (sSet b s1 Empty) jumped Empty) s2 jumper
+doJump :: (Board b) => b -> Square -> Square -> b
+doJump b s1 s2 = sSet (sSet (sSet b s1 Empty) jumped Empty) s2 jumper
 	where
 		jumped = addS s1 (quotS (subS s2 s1) 2)
 		jumper = destPiece (s b s1) s2

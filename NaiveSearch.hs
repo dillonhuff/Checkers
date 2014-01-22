@@ -28,7 +28,7 @@ possibleNextBoards b p = concat $ map (moveSequence b p) (legalMoves b p)
 
 moveSequence :: (Board b) => b -> Player -> Move -> [b]
 moveSequence b m = if (canJumpAgain b p m)
-	then 
+	then concat $ moveSequence (move 
 
 gTreeToList :: GameTree -> [Float]
 gTreeToList (GTree score []) = [score]
