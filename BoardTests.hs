@@ -14,7 +14,8 @@ allBoardTests = do
 	quickCheck move_pushToIsOccupiedAfterMove
 	quickCheck move_jumpFromIsEmptyAfterMove
 	quickCheck move_jumpToIsOccupiedAfterMove
-	
+	quickCheck legalMoves_endOnBoard
+	quickCheck legalMoves_dontEndInOccupiedSpaces
 	
 instance Arbitrary Player where
 	arbitrary = elements [Red, Black]
@@ -74,3 +75,10 @@ move_jumpToIsOccupiedAfterMove b s1 s2 = s (move b (jump s1 s2)) s2 == s b s1
 
 isLegalMove :: (Board b) => b -> Move -> Bool
 isLegalMove b m = elem m (legalMoves b Red) || elem m (legalMoves b Black)
+
+legalMoves_endOnBoard :: MapBoard -> Player -> Bool
+legalMoves_endOnBoard b p = (filter (==False) $ map (isInBounds b) (map end (legalMoves b p))) == []
+
+legalMoves_dontEndInOccupiedSpaces :: MapBoard -> Player -> Bool
+legalMoves_dontEndInOccupiedSpaces b p = filter (\x -> (s b x) /= Empty) (map end (legalMoves b p)) == []
+

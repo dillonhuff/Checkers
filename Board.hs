@@ -1,5 +1,5 @@
 module Board(
-	Board(s, startingBoard, board, legalMoves, move, winner, canJumpAgain, kings, regularPieces),
+	Board(s, startingBoard, board, legalMoves, isInBounds, move, winner, canJumpAgain, kings, regularPieces),
 	Player(Red, Black), otherPlayer, isRed, isBlack,
 	Piece(Empty, P),
 	PieceType, regular, king,
@@ -118,6 +118,7 @@ class Board b where
 	s ::  b -> Square -> Piece
 	sSet :: b -> Square -> Piece -> b
 	legalMoves :: b -> Player -> [Move]
+	isInBounds :: b -> Square -> Bool
 	winner :: b -> Maybe Player
 	canJumpAgain :: b -> Player -> Move -> Bool
 	kings :: b -> Player -> [Square]
@@ -156,10 +157,14 @@ instance Board MapBoard where
 	s = mBoardS
 	sSet = mBSSet
 	legalMoves = mBLegalMoves
+	isInBounds = mBIsInBounds
 	winner = mBWinner
 	canJumpAgain = mBCanJumpAgain
 	kings = mBKings
 	regularPieces = mBRegularPieces
+	
+mBIsInBounds :: MapBoard -> Square -> Bool
+mBIsInBounds (MapB m) sq = member sq m
 	
 mBBoard :: [(Square, Piece)] -> MapBoard
 mBBoard squaresAndPieces = MapB $ fromList squaresAndPieces
@@ -214,8 +219,8 @@ jumpsFrom b sq = L.filter (isValidJump b) possibleJumps
 			Nothing -> []
 			
 isValidJump :: MapBoard -> Move -> Bool
-isValidJump b@(MapB m) (Jump s1 s2) = if (oppositeColors b jumpedSquare s1) 
-	&& (pieceType (s b s2) == Nothing) && member s2 m
+isValidJump b (Jump s1 s2) = if (oppositeColors b jumpedSquare s1) 
+	&& (pieceType (s b s2) == Nothing) && isInBounds b s2
 	then True
 	else False
 	where
