@@ -1,11 +1,11 @@
 module Board(
-	Board(startingBoard, board, legalMoves, move, winner, canJumpAgain, kings, regularPieces),
-	Player, red, black, otherPlayer, isRed, isBlack,
-	Piece, emptyPiece, piece,
+	Board(s, startingBoard, board, legalMoves, move, winner, canJumpAgain, kings, regularPieces),
+	Player(Red, Black), otherPlayer, isRed, isBlack,
+	Piece(Empty, P),
 	PieceType, regular, king,
-	Square, square,
+	Square, square, row, col,
 	MapBoard,
-	Move, push, jump, isJump
+	Move, push, jump, start, end, isJump
 	) where
 
 import Data.List as L
@@ -42,12 +42,6 @@ instance Ord Square where
 
 data Piece = Empty | P Player PieceType
 	deriving (Eq)
-	
-emptyPiece :: Piece
-emptyPiece = Empty
-
-piece :: Player -> PieceType -> Piece
-piece player pieceType = P player pieceType
 	
 player :: Piece -> Maybe Player
 player (P player _) = Just player
@@ -99,13 +93,21 @@ instance Show PieceType where
 	show King = "K"
 
 data Move = Push Square Square | Jump Square Square
-	deriving (Show)
+	deriving (Eq, Show)
 	
 push :: Square -> Square -> Move
 push s1 s2 = Push s1 s2
 
 jump :: Square -> Square -> Move
 jump s1 s2 = Jump s1 s2
+
+start :: Move -> Square
+start (Push s1 _) = s1
+start (Jump s1 _) = s1
+
+end :: Move -> Square
+end (Push _ s2) = s2
+end (Jump _ s2) = s2
 	
 isJump :: Move -> Bool
 isJump (Jump _ _) = True

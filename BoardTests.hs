@@ -1,19 +1,29 @@
-module BoardTests(main) where
+module BoardTests(allBoardTests) where
 
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Board
 
-main = do
-	quickCheck prop_switchesPlayer_changesPlayer
-	quickCheck prop_switchesPlayer_twiceGoesBackToOriginal
+allBoardTests :: IO ()
+allBoardTests = do
+	quickCheck otherPlayer_switchesPlayer
+	quickCheck otherPlayer_applyTwiceIsSameAsNotApply
+	quickCheck square_correctRow
+	quickCheck square_correctCol
+	quickCheck move_pushFromIsEmptyAfterMove
+	quickCheck move_pushToIsOccupiedAfterMove
+	quickCheck move_jumpFromIsEmptyAfterMove
+	quickCheck move_jumpToIsOccupiedAfterMove
+	
 	
 instance Arbitrary Player where
-	arbitrary = elements [red, black]
+	arbitrary = elements [Red, Black]
+	
+otherPlayer_switchesPlayer :: Player -> Bool
+otherPlayer_switchesPlayer p = otherPlayer p /= p
 
-prop_switchesPlayer_changesPlayer p = otherPlayer p /= p
-
-prop_switchesPlayer_twiceGoesBackToOriginal p = otherPlayer (otherPlayer p) == p
+otherPlayer_applyTwiceIsSameAsNotApply :: Player -> Bool
+otherPlayer_applyTwiceIsSameAsNotApply p = otherPlayer (otherPlayer p) == p
 
 instance Arbitrary PieceType where
 	arbitrary = elements [regular, king]
@@ -23,15 +33,21 @@ instance Arbitrary Square where
 		row <- arbitrary
 		col <- arbitrary
 		return $ square row col
-		
+
+square_correctRow :: Int -> Int -> Bool
+square_correctRow r c = row (square r c) == r
+
+square_correctCol :: Int -> Int -> Bool
+square_correctCol r c = col (square r c) == c
+
 instance Arbitrary Piece where
 	arbitrary = do
 		n <- choose (0, 2) :: Gen Int
 		player <- arbitrary
 		pieceType <- arbitrary
 		return $ case n of
-			0 -> emptyPiece
-			_ -> piece player pieceType
+			0 -> Empty
+			_ -> P player pieceType
 			
 instance Arbitrary Move where
 	arbitrary = do
@@ -43,3 +59,18 @@ instance Arbitrary MapBoard where
 	arbitrary = do
 		elements <- listOf (arbitrary :: Gen (Square, Piece))
 		return $ board (take 32 elements)
+		
+move_pushFromIsEmptyAfterMove :: MapBoard -> Square -> Square -> Bool
+move_pushFromIsEmptyAfterMove b s1 s2 = s (move b (push s1 s2)) s1 == Empty
+
+move_pushToIsOccupiedAfterMove :: MapBoard -> Square -> Square -> Bool
+move_pushToIsOccupiedAfterMove b s1 s2 = s (move b (push s1 s2)) s2 == s b s1
+
+move_jumpFromIsEmptyAfterMove :: MapBoard -> Square -> Square -> Bool
+move_jumpFromIsEmptyAfterMove b s1 s2 = s (move b (jump s1 s2)) s1 == Empty
+
+move_jumpToIsOccupiedAfterMove :: MapBoard -> Square -> Square -> Bool
+move_jumpToIsOccupiedAfterMove b s1 s2 = s (move b (jump s1 s2)) s2 == s b s1
+
+isLegalMove :: (Board b) => b -> Move -> Bool
+isLegalMove b m = elem m (legalMoves b Red) || elem m (legalMoves b Black)

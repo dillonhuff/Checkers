@@ -2,9 +2,10 @@ module Main(main) where
 
 import AI
 import Board
+import BoardTests
 
 main :: IO ()
-main = playGame
+main = allBoardTests
 
 playGame :: IO ()
 playGame = humanTurn startingBoard red
