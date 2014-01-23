@@ -5,19 +5,36 @@ import Board
 import BoardTests
 
 main :: IO ()
-main = allBoardTests
+main = playGame
 
 playGame :: IO ()
-playGame = humanTurn startingBoard red
-	
-humanTurn :: MapBoard -> Player -> IO ()
-humanTurn b p = do
-	case winner b of 
-		Just winningPlayer -> putStrLn (show winningPlayer ++ " wins!\n")
-		Nothing -> humanMove b p
+playGame = humanTurn startingBoard (push (square 0 0) (square 0 0)) Black
 			
-humanMove :: MapBoard -> Player -> IO ()
-humanMove b p = do
+humanTurn :: MapBoard -> Move -> Player -> IO ()
+humanTurn b m p = if (canJumpAgain b m p)
+	then jumpMove b m p
+	else unrestrictedMove b (otherPlayer p)
+
+canJumpAgain :: MapBoard -> Move -> Player -> Bool
+canJumpAgain b m p = if isJump m
+	then length (jumpsFromLastMove b p m) > 0
+	else False
+	
+jumpMove :: MapBoard -> Move -> Player -> IO ()
+jumpMove b m p = do
+	let moves = jumpsFromLastMove b p m
+	putStrLn (show b ++ "\n" ++ "Enter the number of your move\n")
+	putStrLn (showMoves 1 moves)
+	moveNum <- getLine
+	let selectedMove = (moves !! ((read moveNum) - 1))
+	putStrLn ("You selected " ++ show selectedMove ++ "\n")
+	let boardAfterMove = move b selectedMove
+	case winner boardAfterMove of
+		Just winningPlayer -> putStrLn (show winningPlayer ++ " wins\n")
+		Nothing -> humanTurn boardAfterMove selectedMove p
+	
+unrestrictedMove :: MapBoard -> Player -> IO ()
+unrestrictedMove b p = do
 	let moves = legalMoves b p
 	putStrLn (show b ++ "\n" ++ "Enter the number of your move\n")
 	putStrLn (showMoves 1 moves)
@@ -25,21 +42,9 @@ humanMove b p = do
 	let selectedMove = (moves !! ((read moveNum) - 1))
 	putStrLn ("You selected " ++ show selectedMove ++ "\n")
 	let boardAfterMove = move b selectedMove
-	if (canJumpAgain boardAfterMove p selectedMove)
-		then humanTurn boardAfterMove p
-		else case winner boardAfterMove of
-			Just winningPlayer -> putStrLn (show winningPlayer ++ " wins!\n")
-			Nothing -> humanTurn (computerTurn boardAfterMove (otherPlayer p)) p
-	
-					
-computerTurn :: (Board b) => b -> Player -> b
-computerTurn b p = if (canJumpAgain boardAfterMove p selectedMove)
-	then computerTurn boardAfterMove p
-	else boardAfterMove
-	where
-		selectedMove = selectMove FMAI b p
-		boardAfterMove = move b selectedMove
-	
+	case winner boardAfterMove of
+		Just winningPlayer -> putStrLn (show winningPlayer ++ " wins\n")
+		Nothing -> humanTurn boardAfterMove selectedMove p
 					
 showMoves :: Int -> [Move] -> String
 showMoves _ [] = ""

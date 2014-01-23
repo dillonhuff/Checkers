@@ -1,5 +1,5 @@
 module Board(
-	Board(s, startingBoard, board, legalMoves, isInBounds, move, winner, canJumpAgain, kings, regularPieces),
+	Board(s, startingBoard, board, legalMoves, isInBounds, move, winner, jumpsFromLastMove, kings, regularPieces),
 	Player(Red, Black), otherPlayer, isRed, isBlack,
 	Piece(Empty, P),
 	PieceType, regular, king,
@@ -120,7 +120,7 @@ class Board b where
 	legalMoves :: b -> Player -> [Move]
 	isInBounds :: b -> Square -> Bool
 	winner :: b -> Maybe Player
-	canJumpAgain :: b -> Player -> Move -> Bool
+	jumpsFromLastMove :: b -> Player -> Move -> [Move]
 	kings :: b -> Player -> [Square]
 	regularPieces :: b -> Player -> [Square]
 	move :: b -> Move -> b
@@ -159,7 +159,7 @@ instance Board MapBoard where
 	legalMoves = mBLegalMoves
 	isInBounds = mBIsInBounds
 	winner = mBWinner
-	canJumpAgain = mBCanJumpAgain
+	jumpsFromLastMove = mBJumpsFromLastMove
 	kings = mBKings
 	regularPieces = mBRegularPieces
 	
@@ -305,8 +305,8 @@ mBWinner (MapB m) = if ((numPieces Red) == 0)
 	where
 		numPieces p = length $ L.filter (matchesPlayer p) (toList m)
 		
-mBCanJumpAgain :: MapBoard -> Player -> Move -> Bool
-mBCanJumpAgain b p m = length (L.filter (jumpFromLastLanding m) (legalMoves b p)) > 0
+mBJumpsFromLastMove :: MapBoard -> Player -> Move -> [Move]
+mBJumpsFromLastMove b p m = L.filter (jumpFromLastLanding m) (legalMoves b p)
 
 jumpFromLastLanding :: Move -> Move -> Bool
 jumpFromLastLanding (Jump _ landing) (Jump starting _) = landing == starting
