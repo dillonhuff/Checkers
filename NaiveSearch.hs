@@ -2,34 +2,35 @@
 
 module NaiveSearch() where
 
+import Data.List
 import Board
 
-data NaiveSearchAI = NSAI ((Board b) => b -> Player -> Float)
+data NaiveSearchAI = NSAI ((Board b) => b -> Float)
 
-pieceDiff :: (Board b) => b -> Player -> Float
-pieceDiff b p = fromIntegral (playerPieces - otherPieces)
+pieceDiff :: (Board b) => Player -> b -> Float
+pieceDiff p b = fromIntegral (playerPieces - otherPieces)
 	where
 		playerPieces = (length (kings b p)) + (length (regularPieces b p))
 		otherPieces = (length (kings b (otherPlayer p)))
 			+ (length (regularPieces b (otherPlayer p)))
-			
-data GameTree = GTree Float [GameTree]
+	
+data MoveTree = Root [MoveTree] | MTree Move [MoveTree]
 	deriving (Show)
 
-makeGameTree :: (Board b) => Int -> (b -> Player -> Float) -> Player -> b -> GameTree
-makeGameTree depth evalFunc p b = GTree (evalFunc b p) children
+makeMoveTree :: Int -> MapBoard -> Player -> MoveTree
+makeMoveTree depth board player = Root $ map (turn depth board player) (legalMoves board player)
+
+turn :: (Board b) => Int -> b -> Player -> Move -> MoveTree
+turn depth b p m = if (depth > 0) 
+	then if (canJumpAgain b m p)
+		then MTree m $ map (turn (depth-1) boardAfterMove p) (jumpsFromLastMove boardAfterMove p m)
+		else MTree m $ map (turn (depth-1) boardAfterMove nextPlayer) (legalMoves boardAfterMove nextPlayer)
+	else MTree m []
 	where
-		children = if (depth > 0)
-			then map (makeGameTree (depth-1) evalFunc (otherPlayer p)) (possibleNextBoards b p)
-			else []
+		boardAfterMove = move b m
+		nextPlayer = otherPlayer p
 
-possibleNextBoards :: (Board b) => b -> Player -> [b]
-possibleNextBoards b p = concat $ map (moveSequence b p) (legalMoves b p)
-
-moveSequence :: (Board b) => b -> Player -> Move -> [b]
-moveSequence b m = if (canJumpAgain b p m)
-	then concat $ moveSequence (move 
-
-gTreeToList :: GameTree -> [Float]
-gTreeToList (GTree score []) = [score]
-gTreeToList (GTree score children) = [score] ++ concat (map gTreeToList children)
+canJumpAgain :: (Board b) => b -> Move -> Player -> Bool
+canJumpAgain b m p = if isJump m
+	then length (jumpsFromLastMove b p m) > 0
+	else False

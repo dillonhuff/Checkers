@@ -81,4 +81,3 @@ legalMoves_endOnBoard b p = (filter (==False) $ map (isInBounds b) (map end (leg
 
 legalMoves_dontEndInOccupiedSpaces :: MapBoard -> Player -> Bool
 legalMoves_dontEndInOccupiedSpaces b p = filter (\x -> (s b x) /= Empty) (map end (legalMoves b p)) == []
-
