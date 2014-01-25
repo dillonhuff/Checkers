@@ -1,6 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
 
-module NaiveSearch() where
+module NaiveSearch(
+	NaiveSearchAI(NSAI),
+	pieceDiff) where
 
 import Data.List
 import AI
