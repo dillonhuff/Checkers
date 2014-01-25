@@ -14,6 +14,9 @@ pieceDiff p b = fromIntegral (playerPieces - otherPieces)
 		otherPieces = (length (kings b (otherPlayer p)))
 			+ (length (regularPieces b (otherPlayer p)))
 	
+makeSearchTree :: Int -> MapBoard -> Player -> MoveSeqTree
+makeSearchTree depth b p = head $ moveSequence $ makeMoveTree depth b p
+	
 data MoveSeqTree = RootSeq [MoveSeqTree] | MSTree [Move] [MoveSeqTree]
 	deriving (Show)
 	
@@ -33,7 +36,7 @@ jumpSequence p moves (MTree (pl, move) children) = if (pl == p) && (isJump move)
 data MoveTree = Root [MoveTree] | MTree (Player, Move) [MoveTree]
 	deriving (Show, Eq)
 
-makeMoveTree :: Int -> MapBoard -> Player -> MoveTree
+makeMoveTree :: (Board b) => Int -> b -> Player -> MoveTree
 makeMoveTree depth board player = Root $ map (turn depth board player) (legalMoves board player)
 
 turn :: (Board b) => Int -> b -> Player -> Move -> MoveTree
@@ -50,3 +53,8 @@ canJumpAgain :: (Board b) => b -> Move -> Player -> Bool
 canJumpAgain b m p = if isJump m
 	then length (jumpsFromLastMove b p m) > 0
 	else False
+	
+moveTreeToList :: MoveTree -> [Move]
+moveTreeToList (Root children) = concat $ map moveTreeToList children
+moveTreeToList (MTree (p, m) []) = [m]
+moveTreeToList (MTree (p, m) children) = m:(concat $ map moveTreeToList children)
