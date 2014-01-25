@@ -3,9 +3,14 @@
 module NaiveSearch() where
 
 import Data.List
+import AI
 import Board
 
+
 data NaiveSearchAI = NSAI ((Board b) => b -> Float)
+
+instance AI NaiveSearchAI where
+	selectMove = selectMoveNSAI
 
 pieceDiff :: (Board b) => Player -> b -> Float
 pieceDiff p b = fromIntegral (playerPieces - otherPieces)
@@ -13,25 +18,31 @@ pieceDiff p b = fromIntegral (playerPieces - otherPieces)
 		playerPieces = (length (kings b p)) + (length (regularPieces b p))
 		otherPieces = (length (kings b (otherPlayer p)))
 			+ (length (regularPieces b (otherPlayer p)))
-	
-makeSearchTree :: Int -> MapBoard -> Player -> MoveSeqTree
-makeSearchTree depth b p = head $ moveSequence $ makeMoveTree depth b p
-	
-data MoveSeqTree = RootSeq [MoveSeqTree] | MSTree [Move] [MoveSeqTree]
-	deriving (Show)
-	
-moveSequence :: MoveTree -> [MoveSeqTree]
-moveSequence (Root children) = [RootSeq $ concat $ map moveSequence children]
-moveSequence (MTree (p, m) children) = if (not (isJump m))
-	then [MSTree [m] $ concat $ map moveSequence children]
-	else concat $ map (jumpSequence p [m]) children
+			
+selectMoveNSAI :: (Board b) => NaiveSearchAI -> b -> Player -> Move
+selectMoveNSAI (NSAI evalFunc) b p = pickMove b p evalFunc (makeMoveTree 3 b p)
 
-jumpSequence :: Player -> [Move] -> MoveTree -> [MoveSeqTree]
-jumpSequence p moves (MTree (pl, move) children) = if (pl == p) && (isJump move)
-	then if (children == [])
-		then [MSTree (moves ++ [move]) []]
-		else concat $ map (jumpSequence p (moves ++ [move])) children
-	else [MSTree moves (concat $ map moveSequence children)]
+pickMove :: (Board b) => b -> Player -> (b -> Float) -> MoveTree -> Move
+pickMove b p evalFunc (Root children) = getMove $ fst $ maximumBy bestScore childrenWithScores
+	where
+		childrenWithScores = zip children (map (moveScore b evalFunc p) children)
+		
+getMove :: MoveTree -> Move
+getMove (MTree (p, m) _) = m
+getMove _ = error "No move possible"
+		
+bestScore :: (MoveTree, Float) -> (MoveTree, Float) -> Ordering
+bestScore (_, score1) (_, score2) = if (score1 < score2)
+	then LT
+	else if (score1 > score2)
+		then GT
+		else EQ
+
+moveScore :: (Board b) => b -> (b -> Float) -> Player -> MoveTree -> Float
+moveScore b evalFunc p (MTree (_, m) []) = evalFunc (move b m)
+moveScore b evalFunc p (MTree (pl, m) children) = if p == pl
+	then maximum (map (moveScore (move b m) evalFunc p) children)
+	else minimum (map (moveScore (move b m) evalFunc p) children)
 
 data MoveTree = Root [MoveTree] | MTree (Player, Move) [MoveTree]
 	deriving (Show, Eq)
